@@ -1,26 +1,25 @@
-# Use Node.js 22 (Recommended by Cline docs)
+# Use Node.js 22
 FROM node:22-slim
 
-# Install system dependencies (git is often needed by cline tools)
-RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
+# Install system basics
+RUN apt-get update && apt-get install -y git curl && rm -rf /var/lib/apt/lists/*
 
-# Install cline-cli globally
+# Install cline globally (agar aapko console mein use karna hai)
 RUN npm install -g cline
 
-# Create a working directory
+# Working directory
 WORKDIR /app
 
-# Create a dummy server file to satisfy Koyeb's Web Service requirement
-# This listens on port 8000 so Koyeb thinks the app is "healthy"
-RUN echo 'const http = require("http"); \
-const server = http.createServer((req, res) => { \
-  res.writeHead(200); \
-  res.end("Cline is sleeping... Wake me up in the Console tab!"); \
-}); \
-server.listen(8000, "0.0.0.0", () => console.log("Dummy server running on port 8000"));' > server.js
+# Initialize package.json aur dependencies install karein
+# Hum yahan seedha commands chala rahe hain taaki aapko alag file na upload karni pade
+RUN npm init -y && \
+    npm install express cors
 
-# Expose the port
+# Copy server.js from your repo to the container
+COPY server.js .
+
+# Expose port 8000
 EXPOSE 8000
 
-# Start the dummy server
+# Start the REAL server
 CMD ["node", "server.js"]
