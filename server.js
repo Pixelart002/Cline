@@ -6,14 +6,14 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// Aapke Free URLs
+// Your Free AI Endpoints
 const MISTRAL_URL = "https://mistral-ai-three.vercel.app/";
 const FLUX_URL = "https://flux-schnell.hello-kaiiddo.workers.dev/img";
 
-// Root route checks
-app.get('/', (req, res) => res.send('Cline Proxy Server is Running!'));
+// Root check
+app.get('/', (req, res) => res.send('Cline Free AI Bridge is Active 🟢'));
 
-// 1. Models List (Cline needs this to know "mistral-free" exists)
+// 1. List Models (So Cline sees "mistral-free")
 app.get('/v1/models', (req, res) => {
   res.json({
     object: "list",
@@ -26,26 +26,25 @@ app.get('/v1/models', (req, res) => {
   });
 });
 
-// 2. Chat Completions (Forward to Mistral)
+// 2. Chat API (Connects to Mistral)
 app.post('/v1/chat/completions', async (req, res) => {
   try {
-    const messages = req.body.messages;
-    // Prompt ko simple string mein convert karte hain
+    const messages = req.body.messages || [];
+    // Convert conversation to a single prompt string
     const prompt = messages.map(m => `${m.role}: ${m.content}`).join('\n');
     
-    // User ID generate karein (random)
+    // Generate a random user ID
     const userId = "user_" + crypto.randomUUID().split('-')[0];
     
-    // Mistral URL par request bhejein
-    // URL Format: .../?id={user_id}&question={question_param}
+    // Call the free Mistral endpoint
     const mistralUrl = `${MISTRAL_URL}?id=${userId}&question=${encodeURIComponent(prompt)}`;
-    
     const response = await fetch(mistralUrl);
-    if (!response.ok) throw new Error('Mistral API Error');
+    
+    if (!response.ok) throw new Error('Failed to fetch from Mistral');
     
     const text = await response.text();
 
-    // OpenAI Format mein wapas bhejein
+    // Return in OpenAI format
     res.json({
       id: "chatcmpl-" + crypto.randomUUID(),
       object: "chat.completion",
@@ -59,20 +58,17 @@ app.post('/v1/chat/completions', async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: "Proxy Error: " + error.message });
+    res.status(500).json({ error: error.message });
   }
 });
 
-// 3. Image Generation (Forward to Flux)
+// 3. Image API (Connects to Flux)
 app.post('/v1/images/generations', async (req, res) => {
   try {
     const prompt = req.body.prompt;
     const timestamp = Math.floor(Date.now() / 1000);
-    
-    // Flux URL banayein
     const finalUrl = `${FLUX_URL}?prompt=${encodeURIComponent(prompt)}&t=${timestamp}`;
     
-    // Direct URL return karein
     res.json({
       created: timestamp,
       data: [{ url: finalUrl }]
@@ -82,6 +78,5 @@ app.post('/v1/images/generations', async (req, res) => {
   }
 });
 
-// Server Start
 const PORT = 8000;
-app.listen(PORT, '0.0.0.0', () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, '0.0.0.0', () => console.log(`Bridge running on port ${PORT}`));
